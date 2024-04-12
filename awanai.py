@@ -176,7 +176,7 @@ def predict(input_image, threshold=0.25, model=None, preprocess_fn=None, device=
             predicted_classes.append(idx2labels[idx])
 
     predicted_classes = "\n".join(predicted_classes)
-    return predicted_classes, output_probs, input_image #instead of input_image here return segmentation image
+    return input_image, input_image, predicted_classes, output_probs #instead of input_image here return segmentation image
 
 
 if __name__ == "__main__":
@@ -223,30 +223,71 @@ if __name__ == "__main__":
         ]
     )
 
-    images_dir = glob(os.path.join(os.getcwd(), "samples") + os.sep + "*.png")
-    examples = [[i, TrainingConfig.METRIC_THRESH] for i in np.random.choice(images_dir, size=10, replace=False)]
+    # With threshold
+    # images_dir = glob(os.path.join(os.getcwd(), "samples") + os.sep + "*.png")
+    # examples = [[i, TrainingConfig.METRIC_THRESH] for i in np.random.choice(images_dir, size=10, replace=False)]
+
+    # WithOUT threshold
+    image_dir = glob(os.path.join(os.getcwd(), "samples") + os.sep + "*.png")
+    examples = [i for i in np.random.choice(image_dir, size=50, replace=False)]
+
     # print(examples)
     
 
     
     
-    with gr.Interface(
-        fn=partial(predict, model=model, preprocess_fn=preprocess, device=DEVICE, idx2labels=labels),
-        inputs=[
-            gr.Image(type="pil", label="Image"),
-            gr.Slider(0.0, 1.0, value=0.25, label="Threshold", info="Select the cut-off threshold for a node to be considered as a valid output."),
-        ],
-        outputs=[
-            gr.Textbox(label="Labels Present"),
-            gr.Label(label="Probabilities", show_label=False),
-            gr.Image(label="Segmentation") #here is segmentation image
-        ],
+    # with gr.Interface(
+    #     fn=partial(predict, model=model, preprocess_fn=preprocess, device=DEVICE, idx2labels=labels),
+    #     inputs=[
+    #         gr.Image(type="pil", label="Image"),
+    #         gr.Slider(0.0, 1.0, value=0.25, label="Threshold", info="Select the cut-off threshold for a node to be considered as a valid output."),
+    #     ],
+    #     outputs=[
+    #         gr.Image(label="crop"),
+    #         gr.Image(label="Segmentation"), #here is segmentation image
+    #         gr.Textbox(label="Labels Present"),
+    #         gr.Label(label="Probabilities", show_label=False),
+            
+    #     ],
        
-        examples=examples,
-        cache_examples=False,
-        allow_flagging="never",
-        title="Awan AI Medical Image Classification",
-        description="Upload picture of tongue or take picture with webcam.",
-        theme=gr.themes.Soft(primary_hue="sky"),
-    ) as iface:
+    #     examples=examples,
+    #     cache_examples=False,
+    #     allow_flagging="never",
+    #     title="Awan AI Medical Image Classification",
+    #     description="Upload picture of tongue or take picture with webcam.",
+    #     theme=gr.themes.Soft(primary_hue="sky"),
+    # ) as iface:
+    #     iface.launch(share=True)
+
+    style_path = os.path.join(os.getcwd(), "style.css")
+    with open(style_path, "r") as f:
+        style = f.read()
+
+    with gr.Blocks(theme=gr.themes.Soft(primary_hue="sky"),css=style) as iface:
+
+        gr.Markdown("<h1><b>Awan.AI Tongue Image Classifier</b></h1>")
+        
+        with gr.Row(equal_height=True):
+            with gr.Column("Inputs"):
+                image_input = gr.Image(type="pil", label="Image", height="300px")
+                slider_input = gr.Slider(0.0, 1.0, value=0.25, label="Threshold", scale=1, info="Select the cut-off threshold for a node to be considered as a valid output.")
+                btn = gr.Button("Submit")
+            
+            with gr.Column("Outputs"):
+                labels_output = gr.Textbox(label="Labels Present", scale=2)
+                probs_output = gr.Label(label="Probabilities", show_label=False, scale=2)
+                with gr.Row():
+                    crop_output = gr.Image(label="crop", scale=1)
+                    seg_output = gr.Image(label="Segmentation", scale=1) #here is segmentation image
+        with gr.Column():
+            inputs = [image_input]
+            tongue_examples=gr.Examples(examples, inputs=inputs, cache_examples=False, examples_per_page=len(examples))
+
+        btn.click(
+            partial(predict, model=model, preprocess_fn=preprocess, device=DEVICE, idx2labels=labels),
+            inputs = [image_input, slider_input],
+            outputs = [crop_output, seg_output, labels_output, probs_output]
+        )
+
+        
         iface.launch(share=True)
