@@ -259,9 +259,14 @@ if __name__ == "__main__":
     # ) as iface:
     #     iface.launch(share=True)
 
-    style_path = os.path.join(os.getcwd(), "style.css")
-    with open(style_path, "r") as f:
-        style = f.read()
+    
+    style = """
+        .image-frame.svelte-rrgd5g {
+            object-fit: cover;
+            width: 100%;
+            max-height: 256px; /* Adjust as needed */
+        }
+    """
 
     with gr.Blocks(theme=gr.themes.Soft(primary_hue="sky"),css=style) as iface:
 
